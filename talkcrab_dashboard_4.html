@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>TALKCRAB 匠蟹 · 营运 Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --red:#C00000;
+    --red-dark:#8f0000;
+    --gold:#D4AF37;
+    --gold-light:#F2E4B8;
+    --cream:#FBF6EC;
+    --ink:#2A2320;
+    --muted:#8A7F6E;
+    --line:#E7DCC0;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+  }
+  .topbar{
+    background:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);
+    color:var(--white);
+    padding:22px 28px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .topbar h1{
+    margin:0;
+    font-size:22px;
+    letter-spacing:.5px;
+  }
+  .topbar .sub{
+    font-size:12px;
+    opacity:.85;
+    margin-top:4px;
+  }
+  .updated{
+    text-align:right;
+    font-size:12px;
+    opacity:.9;
+    line-height:1.6;
+  }
+  .langToggle{
+    display:flex;
+    background:rgba(255,255,255,.15);
+    border-radius:20px;
+    padding:3px;
+    gap:2px;
+  }
+  .langToggle button{
+    border:none;
+    background:transparent;
+    color:var(--white);
+    font-size:12px;
+    font-weight:700;
+    padding:6px 14px;
+    border-radius:16px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .langToggle button.active{
+    background:var(--white);
+    color:var(--red);
+  }
+  .refresh-note{
+    background:var(--gold-light);
+    color:#6b5312;
+    font-size:12px;
+    padding:8px 28px;
+    border-bottom:1px solid var(--line);
+  }
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:24px 20px 60px;
+  }
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-bottom:28px;
+  }
+  .kpi{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-top:4px solid var(--gold);
+    border-radius:8px;
+    padding:16px 18px;
+  }
+  .kpi .label{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .kpi .value{
+    font-size:24px;
+    font-weight:700;
+    color:var(--red);
+  }
+  .kpi .value.small{ font-size:18px; }
+  .section{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:20px 22px;
+    margin-bottom:24px;
+  }
+  .section h2{
+    font-size:15px;
+    margin:0 0 4px;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section h2 .tag{
+    font-size:10px;
+    font-weight:700;
+    background:var(--gold);
+    color:var(--white);
+    padding:2px 8px;
+    border-radius:10px;
+    text-decoration:none;
+    cursor:pointer;
+    transition:background .2s;
+  }
+  .section h2 a.tag:hover{
+    background:var(--red);
+  }
+  .section .desc{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:14px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  th,td{
+    padding:8px 10px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+  }
+  th{
+    background:var(--gold-light);
+    color:#6b5312;
+    font-weight:700;
+  }
+  tr:last-child td{ font-weight:700; background:#FBF6EC; }
+  .grid2{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:20px;
+  }
+  .empty{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    padding:18px 0;
+  }
+  canvas{ max-height:260px; }
+  .progressWrap{ margin-top:4px; }
+  .linkRow{
+    display:flex;
+    gap:12px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .platformLink{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:8px 16px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink);
+    text-decoration:none;
+    transition:background .2s;
+  }
+  .platformLink:hover{ background:var(--gold-light); }
+  .platformLink .dot{
+    width:8px; height:8px; border-radius:50%; display:inline-block;
+  }
+  #lockScreen{
+    position:fixed;
+    inset:0;
+    background:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:999;
+  }
+  #lockBox{
+    background:var(--white);
+    border-radius:12px;
+    padding:40px 36px;
+    width:320px;
+    max-width:88vw;
+    text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+  }
+  #lockBox .crab{ font-size:34px; margin-bottom:6px; }
+  #lockBox h3{
+    margin:0 0 4px;
+    font-size:17px;
+    color:var(--red);
+  }
+  #lockBox p{
+    margin:0 0 18px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  #lockBox input{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-size:14px;
+    text-align:center;
+    box-sizing:border-box;
+    font-family:inherit;
+  }
+  #lockBox input:focus{
+    outline:none;
+    border-color:var(--gold);
+  }
+  #lockBox button{
+    width:100%;
+    margin-top:12px;
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    background:var(--red);
+    color:var(--white);
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  #lockBox button:hover{ background:var(--red-dark); }
+  #lockError{
+    color:var(--red);
+    font-size:12px;
+    margin-top:10px;
+    min-height:14px;
+  }
+  #dashboardContent{ display:none; }
+  .progressLabel{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink);
+    margin-bottom:6px;
+  }
+  .progressLabel #reviewProgressPct{ color:var(--red); }
+  .progressBar{
+    width:100%;
+    height:14px;
+    background:var(--gold-light);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .progressFill{
+    height:100%;
+    background:linear-gradient(90deg,var(--gold),var(--red));
+    border-radius:8px;
+    transition:width .4s ease;
+  }
+  @media (max-width:900px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .grid2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div id="lockBox">
+    <div class="crab">🦀</div>
+    <h3>TALKCRAB 匠蟹</h3>
+    <p>请输入密码查看 Dashboard<br>Enter password to view dashboard</p>
+    <input type="password" id="pwInput" placeholder="密码 / Password" autofocus>
+    <button onclick="checkPassword()">进入 / Enter</button>
+    <div id="lockError"></div>
+  </div>
+</div>
+
+<div id="dashboardContent">
+
+<div class="topbar">
+  <div>
+    <h1 data-i18n="title">TALKCRAB 匠蟹 · 营运 Dashboard</h1>
+    <div class="sub" data-i18n="subtitle">业绩报表 · 零用金 · 现金汇款 三表汇总</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="updated" id="updatedAt"></div>
+    <div class="langToggle">
+      <button id="btnZH" class="active" onclick="setLang('zh')">中文</button>
+      <button id="btnEN" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+</div>
+<div class="refresh-note" data-i18n="refreshNote">
+  ⏱ 数据为最近一次读取三份 Google Sheets 的快照，暂无法自动每日 12am 更新 — 想刷新时跟我说一声，我马上重新读取三份表并更新这里。
+</div>
+
+<div class="wrap">
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label" data-i18n="kpiSalesLabel">7月总业绩 (RM)</div>
+      <div class="value" id="kpiSales">-</div>
+    </div>
+    <div class="kpi">
+      <div class="label" data-i18n="kpiPerHeadLabel">7月客单价 (RM)</div>
+      <div class="value small" id="kpiPerHead">-</div>
+    </div>
+    <div class="kpi">
+      <div class="label" data-i18n="kpiPettyLabel">零用金结余 (RM)</div>
+      <div class="value small" id="kpiPetty">-</div>
+    </div>
+    <div class="kpi">
+      <div class="label" data-i18n="kpiRemitLabel">7-12月汇款完成率</div>
+      <div class="value small" id="kpiRemit">-</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="section">
+      <h2><span data-i18n="salesTrendTitle">当日业绩趋势</span> <a class="tag" href="https://docs.google.com/spreadsheets/d/1I9bgFapVNw0DxFgqcnnt7j4Ls_5a4onu/edit" target="_blank" rel="noopener">SALES REPORT</a></h2>
+      <div class="desc" data-i18n="salesTrendDesc">TALKCRAB SALES REPORT · 2026年7月 · 每日总业绩 (RM)</div>
+      <canvas id="salesChart"></canvas>
+    </div>
+    <div class="section">
+      <h2><span data-i18n="remitTitle">业绩现金汇款汇总</span> <a class="tag" href="https://docs.google.com/spreadsheets/d/19LUSdUY2HKzGnPlWCDbi_bkUVXe_Ke0S/edit" target="_blank" rel="noopener">7-12月</a></h2>
+      <div class="desc" data-i18n="remitDesc">业绩现金 / 汇款金额 / 无法汇款金额</div>
+      <table id="remitTable">
+        <thead>
+          <tr>
+            <th data-i18n="colMonth">月份</th>
+            <th data-i18n="colCash">业绩现金</th>
+            <th data-i18n="colRemitted">汇款金额</th>
+            <th data-i18n="colUnable">无法汇款</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="section">
+      <h2><span data-i18n="dailyTitle">当日业绩明细</span> <a class="tag" href="https://docs.google.com/spreadsheets/d/1I9bgFapVNw0DxFgqcnnt7j4Ls_5a4onu/edit" target="_blank" rel="noopener">DAILY DETAIL</a></h2>
+      <div class="desc">DINE IN / DELIVERY / TAKE AWAY / PICKUP</div>
+      <table id="dailyTable">
+        <thead>
+          <tr>
+            <th data-i18n="colDate">日期</th>
+            <th>Dine in</th><th>Delivery</th><th>Take away</th><th>Pickup</th>
+            <th data-i18n="colPax">Pax</th>
+            <th data-i18n="colTotal">Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="section">
+      <h2><span data-i18n="pettyTitle">零用金类别汇总</span> <a class="tag" href="https://docs.google.com/spreadsheets/d/1KuJFKaN4GA7S7V_2fd7CI54BrFYU5viG/edit" target="_blank" rel="noopener">PETTY CASH</a></h2>
+      <div class="desc" data-i18n="pettyDesc">零用金报表_2026 · 七月</div>
+      <table id="pettyTable">
+        <thead>
+          <tr><th data-i18n="colCategory">类别</th><th data-i18n="colAmount">金额 (RM)</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span data-i18n="reviewTitle">好评追踪</span> <a class="tag" href="https://docs.google.com/spreadsheets/d/1TfBL5mX5xKV0OnbGNeCfBvyM-_xE6CGN/edit" target="_blank" rel="noopener">REVIEW TRACKER</a></h2>
+    <div class="desc" data-i18n="reviewDesc">TALKCRAB_好评追踪表 · 目标 450 (Google 250 / 小红书 150 / 大众点评 50)</div>
+
+    <div class="linkRow">
+      <a href="https://share.google/oTLTaUFTL44OQICJb" target="_blank" rel="noopener" class="platformLink">
+        <span class="dot" style="background:#4285F4;"></span> Google <span data-i18n="linkCheck">评论页 →</span>
+      </a>
+      <a href="https://www.dianping.com/shop/k7lta3i7Iwsatww4" target="_blank" rel="noopener" class="platformLink">
+        <span class="dot" style="background:#FF6633;"></span> <span data-i18n="colDianping">大众点评</span> <span data-i18n="linkCheck">评论页 →</span>
+      </a>
+    </div>
+
+    <div class="progressWrap">
+      <div class="progressLabel">
+        <span id="reviewProgressText">0 / 450</span>
+        <span id="reviewProgressPct">0%</span>
+      </div>
+      <div class="progressBar"><div class="progressFill" id="reviewProgressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:18px;">
+      <table id="reviewPlatformTable">
+        <thead>
+          <tr><th data-i18n="colPlatform">平台</th><th data-i18n="colTarget">目标</th><th data-i18n="colDone">已完成</th><th data-i18n="colLeft">剩余</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <table id="reviewStaffTable">
+        <thead>
+          <tr><th data-i18n="colStaff">员工</th><th>Google</th><th data-i18n="colXHS">小红书</th><th data-i18n="colDianping">大众点评</th><th data-i18n="colTotal">总计</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+// ---- i18n ----
+let currentLang = "zh";
+const i18n = {
+  zh: {
+    title: "TALKCRAB 匠蟹 · 营运 Dashboard",
+    subtitle: "业绩报表 · 零用金 · 现金汇款 三表汇总",
+    refreshNote: "⏱ 数据为最近一次读取三份 Google Sheets 的快照，暂无法自动每日 12am 更新 — 想刷新时跟我说一声，我马上重新读取三份表并更新这里。",
+    updatedLabel: "最近读取时间",
+    kpiSalesLabel: "7月总业绩 (RM)",
+    kpiPerHeadLabel: "7月客单价 (RM)",
+    kpiPettyLabel: "零用金结余 (RM)",
+    kpiRemitLabel: "7-12月汇款完成率",
+    salesTrendTitle: "当日业绩趋势",
+    salesTrendDesc: "TALKCRAB SALES REPORT · 2026年7月 · 每日总业绩 (RM)",
+    remitTitle: "业绩现金汇款汇总",
+    remitDesc: "业绩现金 / 汇款金额 / 无法汇款金额",
+    dailyTitle: "当日业绩明细",
+    pettyTitle: "零用金类别汇总",
+    pettyDesc: "零用金报表_2026 · 七月",
+    colMonth: "月份", colCash: "业绩现金", colRemitted: "汇款金额", colUnable: "无法汇款",
+    colDate: "日期", colPax: "Pax", colTotal: "Total",
+    colCategory: "类别", colAmount: "金额 (RM)",
+    totalLabel: "总计", noData: "暂无数据",
+    months: ["七月","八月","九月","十月","十一月","十二月"],
+    categories: ["交通费","餐饮费","文具/办公用品","其他杂费","员工预支薪水"],
+    chartLabel: "当日总业绩 (RM)",
+    reviewTitle: "好评追踪",
+    reviewDesc: "TALKCRAB_好评追踪表 · 目标 450 (Google 250 / 小红书 150 / 大众点评 50)",
+    colPlatform: "平台", colTarget: "目标", colDone: "已完成", colLeft: "剩余",
+    colStaff: "员工", colXHS: "小红书", colDianping: "大众点评",
+    kindPerson: "好心人 (不分平台)",
+    linkCheck: "评论页 →",
+  },
+  en: {
+    title: "TALKCRAB · Operations Dashboard",
+    subtitle: "Sales Report · Petty Cash · Cash Remittance Combined",
+    refreshNote: "⏱ Data shown is a snapshot from the last time the 3 Google Sheets were read — true automatic daily 12am updates aren't possible on my end. Just ask me to refresh and I'll re-read all 3 sheets and update this instantly.",
+    updatedLabel: "Last read at",
+    kpiSalesLabel: "July Total Sales (RM)",
+    kpiPerHeadLabel: "July Spend / Head (RM)",
+    kpiPettyLabel: "Petty Cash Balance (RM)",
+    kpiRemitLabel: "Jul-Dec Remittance Rate",
+    salesTrendTitle: "Daily Sales Trend",
+    salesTrendDesc: "TALKCRAB SALES REPORT · July 2026 · Daily Total Sales (RM)",
+    remitTitle: "Cash Remittance Summary",
+    remitDesc: "Performance Cash / Remitted Amount / Unremitted Amount",
+    dailyTitle: "Daily Sales Detail",
+    pettyTitle: "Petty Cash by Category",
+    pettyDesc: "Petty Cash Report 2026 · July",
+    colMonth: "Month", colCash: "Cash", colRemitted: "Remitted", colUnable: "Unable to Remit",
+    colDate: "Date", colPax: "Pax", colTotal: "Total",
+    colCategory: "Category", colAmount: "Amount (RM)",
+    totalLabel: "Total", noData: "No data yet",
+    months: ["Jul","Aug","Sep","Oct","Nov","Dec"],
+    categories: ["Transport","Meals","Stationery/Office Supplies","Misc.","Staff Salary Advance"],
+    chartLabel: "Daily Total Sales (RM)",
+    reviewTitle: "Positive Review Tracker",
+    reviewDesc: "TALKCRAB Review Tracker · Target 450 (Google 250 / Xiaohongshu 150 / Dianping 50)",
+    colPlatform: "Platform", colTarget: "Target", colDone: "Done", colLeft: "Remaining",
+    colStaff: "Staff", colXHS: "Xiaohongshu", colDianping: "Dianping",
+    kindPerson: "Kind Strangers (all platforms)",
+    linkCheck: "Reviews →",
+  }
+};
+
+// ---- 数据快照 (来自三份 Google Sheets，最近一次读取) ----
+const dataDate = "2026-07-03 (读取快照)";
+
+const dailySales = [
+  {date:"2026-07-01", dinein:8963.25, delivery:2432.54, takeaway:380.20, pickup:0.00, pax:66, total:11863.99},
+  {date:"2026-07-02", dinein:12177.65, delivery:2518.50, takeaway:15.90, pickup:0.00, pax:69, total:14781.05},
+  // 07-03 起尚未有数据
+];
+
+const monthlySales = 26645.04;
+const perHeadSpending = 197.37;
+
+const pettyCash = {
+  balance: null, // "-" 表示尚无数据
+  categories: [
+    {name:"交通费", amount:0},
+    {name:"餐饮费", amount:0},
+    {name:"文具/办公用品", amount:0},
+    {name:"其他杂费", amount:0},
+    {name:"员工预支薪水", amount:0},
+  ]
+};
+
+// remittance rows keyed by month index (0=Jul ... 5=Dec), month name resolved per-language at render time
+const remittance = [
+  {cash:null, remitted:null, unable:null},
+  {cash:null, remitted:null, unable:null},
+  {cash:null, remitted:null, unable:null},
+  {cash:null, remitted:null, unable:null},
+  {cash:null, remitted:null, unable:null},
+  {cash:null, remitted:null, unable:null},
+];
+
+// 好评追踪数据 (TALKCRAB_好评追踪表)
+const reviewTarget = { google: 250, xhs: 150, dianping: 50 };
+const reviewStaff = [
+  {name:"Xian", google:0, xhs:0, dianping:0},
+  {name:"Dickson", google:0, xhs:0, dianping:0},
+  {name:"Christina", google:0, xhs:0, dianping:0},
+  {name:"Amin", google:0, xhs:0, dianping:0},
+  {name:"Xiaohe", google:0, xhs:0, dianping:0},
+  {name:"__kindPerson__", google:0, xhs:0, dianping:0},
+];
+
+const fmt = v => v===null || v===undefined ? "-" : Number(v).toLocaleString("en-MY",{minimumFractionDigits:2});
+let salesChart = null;
+
+function render(){
+  const t = i18n[currentLang];
+
+  // static text nodes
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    el.textContent = t[el.getAttribute("data-i18n")];
+  });
+  document.getElementById("updatedAt").innerHTML = t.updatedLabel + "<br>" + dataDate;
+
+  // KPIs
+  document.getElementById("kpiSales").textContent = "RM " + monthlySales.toLocaleString("en-MY",{minimumFractionDigits:2});
+  document.getElementById("kpiPerHead").textContent = "RM " + perHeadSpending.toFixed(2);
+  document.getElementById("kpiPetty").textContent = pettyCash.balance === null ? t.noData : "RM " + pettyCash.balance.toFixed(2);
+
+  const totalCash = remittance.reduce((s,r)=>s+(r.cash||0),0);
+  const totalRemitted = remittance.reduce((s,r)=>s+(r.remitted||0),0);
+  document.getElementById("kpiRemit").textContent = totalCash === 0 ? t.noData : ((totalRemitted/totalCash)*100).toFixed(1)+"%";
+
+  // 汇款汇总表
+  const remitBody = document.querySelector("#remitTable tbody");
+  remitBody.innerHTML = "";
+  remittance.forEach((r,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${t.months[i]}</td><td>${fmt(r.cash)}</td><td>${fmt(r.remitted)}</td><td>${fmt(r.unable)}</td>`;
+    remitBody.appendChild(tr);
+  });
+  const totalRow = document.createElement("tr");
+  totalRow.innerHTML = `<td>${t.totalLabel}</td><td>${fmt(totalCash||null)}</td><td>${fmt(totalRemitted||null)}</td><td>-</td>`;
+  remitBody.appendChild(totalRow);
+
+  // 每日业绩明细表
+  const dailyBody = document.querySelector("#dailyTable tbody");
+  dailyBody.innerHTML = "";
+  if(dailySales.length===0){
+    dailyBody.innerHTML = `<tr><td colspan="7" class="empty">${t.noData}</td></tr>`;
+  }else{
+    dailySales.forEach(d=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${d.date.slice(5)}</td><td>${fmt(d.dinein)}</td><td>${fmt(d.delivery)}</td><td>${fmt(d.takeaway)}</td><td>${fmt(d.pickup)}</td><td>${d.pax}</td><td><b>${fmt(d.total)}</b></td>`;
+      dailyBody.appendChild(tr);
+    });
+  }
+
+  // 零用金类别表
+  const pettyBody = document.querySelector("#pettyTable tbody");
+  pettyBody.innerHTML = "";
+  pettyCash.categories.forEach((c,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${t.categories[i]}</td><td>${fmt(c.amount)}</td>`;
+    pettyBody.appendChild(tr);
+  });
+
+  // 好评追踪
+  const doneGoogle = reviewStaff.reduce((s,r)=>s+r.google,0);
+  const doneXHS = reviewStaff.reduce((s,r)=>s+r.xhs,0);
+  const doneDianping = reviewStaff.reduce((s,r)=>s+r.dianping,0);
+  const totalTarget = reviewTarget.google + reviewTarget.xhs + reviewTarget.dianping;
+  const totalDone = doneGoogle + doneXHS + doneDianping;
+  const pct = totalTarget ? Math.round((totalDone/totalTarget)*100) : 0;
+
+  document.getElementById("reviewProgressText").textContent = `${totalDone} / ${totalTarget}`;
+  document.getElementById("reviewProgressPct").textContent = pct + "%";
+  document.getElementById("reviewProgressFill").style.width = pct + "%";
+
+  const platformBody = document.querySelector("#reviewPlatformTable tbody");
+  platformBody.innerHTML = "";
+  [
+    ["Google", reviewTarget.google, doneGoogle],
+    [t.colXHS, reviewTarget.xhs, doneXHS],
+    [t.colDianping, reviewTarget.dianping, doneDianping],
+  ].forEach(([name,target,done])=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${name}</td><td>${target}</td><td>${done}</td><td>${target-done}</td>`;
+    platformBody.appendChild(tr);
+  });
+  const platTotalRow = document.createElement("tr");
+  platTotalRow.innerHTML = `<td>${t.totalLabel}</td><td>${totalTarget}</td><td>${totalDone}</td><td>${totalTarget-totalDone}</td>`;
+  platformBody.appendChild(platTotalRow);
+
+  const staffBody = document.querySelector("#reviewStaffTable tbody");
+  staffBody.innerHTML = "";
+  reviewStaff.forEach(s=>{
+    const label = s.name === "__kindPerson__" ? t.kindPerson : s.name;
+    const total = s.google + s.xhs + s.dianping;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${label}</td><td>${s.google}</td><td>${s.xhs}</td><td>${s.dianping}</td><td><b>${total}</b></td>`;
+    staffBody.appendChild(tr);
+  });
+
+  // 业绩趋势图
+  if(salesChart) salesChart.destroy();
+  salesChart = new Chart(document.getElementById("salesChart"), {
+    type: "bar",
+    data: {
+      labels: dailySales.map(d=>d.date.slice(5)),
+      datasets: [{
+        label: t.chartLabel,
+        data: dailySales.map(d=>d.total),
+        backgroundColor: "#D4AF37",
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      plugins:{ legend:{ display:false } },
+      scales:{
+        y:{ beginAtZero:true, ticks:{ callback:v=>"RM "+v } }
+      }
+    }
+  });
+}
+
+function setLang(lang){
+  currentLang = lang;
+  document.getElementById("btnZH").classList.toggle("active", lang==="zh");
+  document.getElementById("btnEN").classList.toggle("active", lang==="en");
+  document.documentElement.lang = lang === "zh" ? "zh" : "en";
+  render();
+}
+
+render();
+
+// ---- 密码保护 ----
+const DASHBOARD_PASSWORD = "Talkcrabkepong";
+function checkPassword(){
+  const val = document.getElementById("pwInput").value;
+  if(val === DASHBOARD_PASSWORD){
+    document.getElementById("lockScreen").style.display = "none";
+    document.getElementById("dashboardContent").style.display = "block";
+  }else{
+    document.getElementById("lockError").textContent = currentLang === "zh" ? "密码错误，请重试" : "Wrong password, try again";
+    document.getElementById("pwInput").value = "";
+    document.getElementById("pwInput").focus();
+  }
+}
+document.getElementById("pwInput").addEventListener("keydown", function(e){
+  if(e.key === "Enter") checkPassword();
+});
+</script>
+</body>
+</html>
