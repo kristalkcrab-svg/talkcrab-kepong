@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TALKCRAB 运营系统</title>
+<style>
+:root {
+  --red:#C8102E; --red-dark:#8F0B21; --red-light:#FDE9EC;
+  --blue:#1B3A6B; --blue-light:#E8EEF7; --blue-mid:#2E5698;
+  --green:#059669; --green-light:#D1FAE5;
+  --purple:#7C3AED; --purple-light:#EDE9FE;
+  --white:#FFFFFF; --bg:#F0F2F7; --text:#1A1D24;
+  --muted:#6B7280; --border:#E2E5EC; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);}
+.app{max-width:820px;margin:0 auto;min-height:100vh;}
+
+/* ── LOGIN ── */
+.login-screen{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(165deg,var(--blue) 0%,var(--blue) 44%,var(--bg) 44%);
+  padding:24px;
+}
+.brand{color:var(--white);font-size:28px;font-weight:800;letter-spacing:2px;text-align:center;}
+.brand-sub{color:rgba(232,238,247,0.75);font-size:12px;margin:4px 0 28px;text-align:center;letter-spacing:1px;}
+.login-card{
+  background:var(--white);border-radius:18px;padding:28px 24px 22px;
+  width:100%;max-width:310px;box-shadow:0 12px 40px rgba(0,0,0,0.15);text-align:center;
+}
+.login-hint{font-size:13px;color:var(--muted);margin-bottom:6px;}
+.pin-dots{display:flex;justify-content:center;gap:14px;margin:14px 0;}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);transition:all .15s;}
+.pin-dot.filled{background:var(--red);border-color:var(--red);transform:scale(1.15);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:8px;}
+.pin-key{
+  padding:15px 0;font-size:20px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--white);
+  cursor:pointer;color:var(--text);font-family:inherit;transition:background .1s,border-color .1s;
+}
+.pin-key:active,.pin-key:hover{background:var(--blue-light);border-color:var(--blue-mid);}
+.pin-key.wide{font-size:12px;color:var(--muted);}
+.login-error{color:var(--red);font-size:12px;height:18px;margin-top:10px;}
+
+/* ── TOPBAR ── */
+.topbar{
+  background:var(--blue);color:var(--white);padding:13px 18px;
+  display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;z-index:20;
+}
+.topbar-title{font-size:15px;font-weight:700;letter-spacing:.5px;}
+.topbar-date{font-size:10px;color:rgba(232,238,247,.7);margin-top:2px;}
+.role-badge{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:700;color:var(--white);}
+.badge-admin{background:var(--red);}
+.badge-front{background:var(--green);}
+.badge-kitchen{background:var(--purple);}
+.logout-btn{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);
+  color:var(--white);font-size:11px;padding:5px 10px;border-radius:7px;
+  cursor:pointer;margin-left:8px;font-family:inherit;
+}
+
+/* ── TABS ── */
+.tabs{
+  display:flex;background:var(--white);border-bottom:2px solid var(--border);
+  position:sticky;top:52px;z-index:19;overflow-x:auto;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  flex:1;min-width:64px;text-align:center;padding:12px 6px;
+  font-size:11.5px;color:var(--muted);cursor:pointer;
+  border-bottom:3px solid transparent;font-weight:700;white-space:nowrap;
+  background:none;border-top:none;border-left:none;border-right:none;
+  font-family:inherit;transition:color .15s;letter-spacing:.2px;
+}
+.tab.active{color:var(--red);border-bottom-color:var(--red);}
+
+/* ── PAGES ── */
+.page{padding:16px;padding-bottom:72px;display:none;}
+.page.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:13px;}
+.card-title{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.card-title span.sub{font-size:11px;font-weight:400;color:var(--muted);}
+
+/* ── PROGRESS ── */
+.progress-track{background:var(--blue-light);border-radius:20px;height:7px;overflow:hidden;margin-top:4px;}
+.progress-fill{height:100%;border-radius:20px;transition:width .4s cubic-bezier(.4,0,.2,1);}
+.pf-red{background:var(--red);} .pf-green{background:var(--green);} .pf-purple{background:var(--purple);}
+
+/* ── CHECKLIST ── */
+.section-header{
+  padding:10px 14px;border-radius:var(--radius) var(--radius) 0 0;
+  font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;color:var(--white);
+}
+.sh-green{background:var(--green);}
+.sh-purple{background:var(--purple);}
+.section-body{
+  background:var(--white);border:1px solid var(--border);border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);margin-bottom:13px;
+}
+.check-item{
+  display:flex;align-items:flex-start;gap:10px;padding:11px 14px;
+  border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;
+  transition:background .1s;
+}
+.check-item:last-child{border-bottom:none;}
+.check-item:hover{background:var(--bg);}
+.check-item input[type=checkbox]{width:20px;height:20px;accent-color:var(--red);margin-top:1px;flex-shrink:0;cursor:pointer;}
+.check-item.done .item-zh{color:var(--muted);text-decoration:line-through;}
+.item-zh{font-size:13px;line-height:1.4;}
+.item-en{color:var(--muted);font-size:11px;display:block;margin-top:2px;}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.stat-box{background:var(--blue-light);border-radius:var(--radius);padding:13px;}
+.stat-num{font-size:26px;font-weight:800;color:var(--blue);}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ── AREA PROGRESS (admin dash) ── */
+.area-block{border-radius:var(--radius);padding:14px;margin-bottom:10px;border:1px solid var(--border);}
+.area-block.front{border-left:4px solid var(--green);background:var(--green-light);}
+.area-block.kitchen{border-left:4px solid var(--purple);background:var(--purple-light);}
+.area-block-title{font-size:13px;font-weight:700;margin-bottom:10px;}
+.area-block.front .area-block-title{color:var(--green);}
+.area-block.kitchen .area-block-title{color:var(--purple);}
+.sec-prog{margin-bottom:7px;}
+.sec-prog-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:3px;}
+
+/* ── FH BANNER ── */
+.fh-banner{
+  background:linear-gradient(135deg,#059669,#047857);
+  color:var(--white);padding:18px 18px 16px;border-radius:var(--radius);
+  margin-bottom:14px;
+}
+.fh-banner-top{display:flex;justify-content:space-between;align-items:center;}
+.fh-banner-title{font-size:15px;font-weight:700;}
+.fh-banner-sub{font-size:11px;opacity:.75;margin-top:3px;}
+.fh-big-num{font-size:38px;font-weight:800;line-height:1;}
+.fh-big-label{font-size:11px;opacity:.75;text-align:center;}
+.fh-bar-wrap{margin-top:12px;}
+.fh-bar-label{display:flex;justify-content:space-between;font-size:11px;opacity:.8;margin-bottom:4px;}
+.fh-bar-track{background:rgba(255,255,255,.25);border-radius:20px;height:9px;overflow:hidden;}
+.fh-bar-fill{background:var(--white);height:100%;border-radius:20px;transition:width .4s cubic-bezier(.4,0,.2,1);}
+
+/* ── ALERT ── */
+.alert-item{background:var(--red-light);border:1px solid #FECACA;color:var(--red-dark);border-radius:8px;padding:9px 12px;font-size:12.5px;margin-top:6px;}
+.ok-note{font-size:12.5px;color:var(--muted);padding:2px 0;}
+
+/* ── WASTAGE ── */
+.wastage-row{display:flex;gap:8px;margin-bottom:10px;}
+.wastage-row input[type=text]{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.photo-thumb{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.photo-thumb img{width:100%;height:78px;object-fit:cover;display:block;}
+.photo-no-img{height:78px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);background:var(--bg);}
+.photo-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;width:20px;height:20px;border-radius:50%;font-size:13px;cursor:pointer;line-height:1;}
+.photo-cap{font-size:10px;color:var(--muted);padding:3px 6px;background:var(--white);}
+.muted-note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.7;}
+
+/* ── INVENTORY ── */
+table.inv{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.inv th{background:var(--blue-light);color:var(--blue);text-align:left;padding:8px 6px;font-size:11px;font-weight:700;}
+table.inv td{padding:6px;border-bottom:1px solid var(--border);}
+table.inv input{width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;}
+table.inv input:disabled{background:var(--bg);color:var(--muted);border:1px solid transparent;}
+.low-flag{color:var(--red);font-weight:700;}
+.add-row{display:flex;gap:8px;margin-top:12px;}
+.add-row input{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit;}
+.row-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;}
+.save-bar{position:sticky;bottom:0;background:var(--white);padding:10px 0;border-top:1px solid var(--border);margin-top:4px;}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s;}
+.btn:hover{opacity:.88;}
+.btn-red{background:var(--red);color:var(--white);}
+.btn-blue{background:var(--blue);color:var(--white);}
+.btn-outline{background:var(--white);border:1.5px solid var(--border);color:var(--muted);}
+.btn-full{width:100%;}
+.mt10{margin-top:10px;} .mt12{margin-top:12px;}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:12px 0;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ════════════ LOGIN ════════════ -->
+<div class="login-screen" id="loginScreen">
+  <div class="brand">TALKCRAB 匠蟹</div>
+  <div class="brand-sub">OPERATIONS SYSTEM</div>
+  <div class="login-card">
+    <div class="login-hint">请输入 PIN 登入</div>
+    <div class="pin-dots" id="pinDots"></div>
+    <div class="login-error" id="loginError"></div>
+    <div class="pin-pad" id="pinPad"></div>
+  </div>
+</div>
+
+<!-- ════════════ MAIN ════════════ -->
+<div id="mainScreen" style="display:none;">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">TALKCRAB 匠蟹</div>
+      <div class="topbar-date" id="todayLabel"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span class="role-badge" id="roleBadge"></span>
+      <button class="logout-btn" onclick="logout()">登出</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabsBar"></div>
+  <div id="pagesContainer"></div>
+</div>
+
+</div><!-- .app -->
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+
+const FRONT_HALL = {
+  entrance:{ title:'门口 Entrance', color:'sh-green', items:[
+    {id:'fh_e1', zh:'门口无垃圾、异味、苍蝇', en:'No trash, odor, or flies at entrance'},
+    {id:'fh_e2', zh:'门口展示 OPEN 招牌', en:'OPEN sign displayed'},
+    {id:'fh_e3', zh:'更换营业音乐', en:'Background music switched on'},
+    {id:'fh_e4', zh:'玻璃门窗无手印、无灰尘', en:'Glass doors/windows clean, no fingerprints or dust'},
+  ]},
+  counter:{ title:'柜台 Counter', color:'sh-green', items:[
+    {id:'fh_c1', zh:'柜台整齐、无垃圾、无灰尘', en:'Counter tidy, no trash, no dust'},
+  ]},
+  dining:{ title:'内厅 Dining Area', color:'sh-green', items:[
+    {id:'fh_d1', zh:'沙发 / 地面无垃圾', en:'Sofas / floor free of trash'},
+    {id:'fh_d2', zh:'桌子摆放整齐对齐', en:'Tables aligned and neat'},
+    {id:'fh_d3', zh:'椅子颜色一致', en:'Chairs matching in color'},
+    {id:'fh_d4', zh:'餐具、菜单齐全', en:'Cutlery and menus complete'},
+    {id:'fh_d5', zh:'用餐区域无苍蝇', en:'Dining area free of flies'},
+    {id:'fh_d6', zh:'餐巾盒及用具补齐', en:'Napkin boxes & utensils fully stocked'},
+  ]},
+  restroom:{ title:'厕所区域 Restroom', color:'sh-green', items:[
+    {id:'fh_r1', zh:'漱口水、棉花棒、牙签齐全', en:'Mouthwash, cotton buds, toothpicks stocked'},
+    {id:'fh_r2', zh:'卫生纸、湿纸巾、卫生棉齐全', en:'Toilet paper, wet wipes, sanitary pads stocked'},
+    {id:'fh_r3', zh:'垃圾桶清空、地板整洁', en:'Bin emptied, floor clean'},
+    {id:'fh_r4', zh:'厕所清洗（早班 + 晚班 各一次）', en:'Restroom cleaned twice daily (AM + PM)'},
+  ]},
+};
+
+const KITCHEN = {
+  opening:{ title:'开档 Opening', color:'sh-purple', items:[
+    {id:'k_o1', zh:'处理虾，检查冰箱里的食物标签，确认米饭品质', en:'Prep prawns; check fridge labels; confirm rice quality'},
+    {id:'k_o2', zh:'海鲜退冰：虾、青蚝、墨鱼、椰子、椰果、蔬菜', en:'Defrost: prawns, oysters, cuttlefish, coconut, coconut jelly, vegetables'},
+    {id:'k_o3', zh:'冰箱清洁，地面无垃圾，检查库存', en:'Clean fridges, floor free of trash, check stock balance'},
+    {id:'k_o4', zh:'所有原材料备好并标记日期', en:'All raw materials prepped and labeled with date'},
+    {id:'k_o5', zh:'检查食材耗损并拍照记录', en:'Check morning wastage and photograph for record'},
+  ]},
+  round1:{ title:'第一轮翻台 Round Break 1', color:'sh-purple', items:[
+    {id:'k_r1', zh:'所有岗位清洁干净，备菜已切好', en:'All stations cleaned; prep ingredients cut and ready'},
+    {id:'k_r2', zh:'螃蟹缸清理干净', en:'Crab tank cleaned'},
+  ]},
+  round2:{ title:'第二轮翻台 Round Break 2', color:'sh-purple', items:[
+    {id:'k_r3', zh:'检查备用食材，为下一轮营业做准备', en:'Check standby ingredients, ready for next round'},
+    {id:'k_r4', zh:'店面后巷沟渠无阻塞', en:'Back alley drain unblocked'},
+  ]},
+  closing:{ title:'打烊 Closing', color:'sh-purple', items:[
+    {id:'k_c1', zh:'所有耗损物品已上传记录', en:'All wastage items uploaded/recorded'},
+    {id:'k_c2', zh:'所有食材已关盖保存，贴上标签', en:'All ingredients covered, stored, and labeled'},
+    {id:'k_c3', zh:'库存balance已更新去群组', en:'Stock balance updated to group chat'},
+    {id:'k_c4', zh:'检查卫生', en:'Check hygiene / cleanliness'},
+  ]},
+};
+
+const DEFAULT_INV = ['虾 Prawns','青蚝 Oysters','Cuttlefish 墨鱼','椰子 Coconut','椰果 Coconut jelly','蔬菜 Vegetables','米饭 Rice'];
+
+const ROLES = {
+  '1111':{ role:'front_hall',     label:'外厅员工 Front Hall', badgeClass:'badge-front'   },
+  '8888':{ role:'kitchen_staff',  label:'后厨员工 Kitchen',    badgeClass:'badge-kitchen' },
+  '0501':{ role:'admin',          label:'管理员 Admin',        badgeClass:'badge-admin'   },
+  '8838':{ role:'admin',          label:'管理员 Admin',        badgeClass:'badge-admin'   },
+};
+
+// ═══════════════════════════════════════════════
+// STATE & STORAGE
+// ═══════════════════════════════════════════════
+
+const today = new Date().toISOString().slice(0,10);
+const todayDisplay = new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+let currentRole = null;
+let pinBuffer = '';
+let fhState = {}, kitState = {}, wastageState = [], inventoryState = null;
+
+const store = {
+  get(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch{return null;} },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch{return false;} },
+};
+
+// ═══════════════════════════════════════════════
+// PIN PAD
+// ═══════════════════════════════════════════════
+
+function buildPinPad(){
+  const pad = document.getElementById('pinPad');
+  ['1','2','3','4','5','6','7','8','9','清除','0','确认'].forEach(k=>{
+    const btn = document.createElement('button');
+    btn.className = 'pin-key'+(k.length>1?' wide':'');
+    btn.textContent = k;
+    btn.onclick = ()=>handleKey(k);
+    pad.appendChild(btn);
+  });
+  renderDots();
+}
+function renderDots(){
+  const el = document.getElementById('pinDots');
+  el.innerHTML='';
+  for(let i=0;i<4;i++){
+    const d=document.createElement('div');
+    d.className='pin-dot'+(i<pinBuffer.length?' filled':'');
+    el.appendChild(d);
+  }
+}
+function handleKey(k){
+  document.getElementById('loginError').textContent='';
+  if(k==='清除'){ pinBuffer=''; renderDots(); return; }
+  if(k==='确认'){ tryLogin(); return; }
+  if(pinBuffer.length<4){ pinBuffer+=k; renderDots(); }
+  if(pinBuffer.length===4) setTimeout(tryLogin,150);
+}
+function tryLogin(){
+  const m=ROLES[pinBuffer];
+  if(m){ currentRole=m.role; enterApp(m); }
+  else{ document.getElementById('loginError').textContent='PIN 不正确 Incorrect PIN'; pinBuffer=''; renderDots(); }
+}
+function logout(){
+  currentRole=null; pinBuffer='';
+  document.getElementById('mainScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('pagesContainer').innerHTML='';
+  document.getElementById('tabsBar').innerHTML='';
+  document.getElementById('loginError').textContent='';
+  renderDots();
+}
+
+// ═══════════════════════════════════════════════
+// ENTER APP
+// ═══════════════════════════════════════════════
+
+function enterApp(m){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainScreen').style.display='block';
+  document.getElementById('todayLabel').textContent=todayDisplay;
+  const b=document.getElementById('roleBadge');
+  b.textContent=m.label; b.className='role-badge '+m.badgeClass;
+  buildLayout(currentRole);
+  loadFH();
+  if(currentRole!=='front_hall'){ loadKit(); loadWastage(); loadInventory(); }
+}
+
+// ═══════════════════════════════════════════════
+// LAYOUT BUILDER
+// ═══════════════════════════════════════════════
+
+const PAGES_BY_ROLE = {
+  front_hall:[
+    {id:'fh', label:'外厅清单'},
+  ],
+  kitchen_staff:[
+    {id:'kdash', label:'总览'},
+    {id:'kchecklist', label:'后厨清单'},
+    {id:'stock', label:'盘点'},
+  ],
+  admin:[
+    {id:'adash', label:'总览'},
+    {id:'fh', label:'外厅 '},
+    {id:'kchecklist', label:'后厨 '},
+    {id:'stock', label:'盘点'},
+  ],
+};
+
+function buildLayout(role){
+  const tabsBar=document.getElementById('tabsBar');
+  const pages=document.getElementById('pagesContainer');
+  tabsBar.innerHTML=''; pages.innerHTML='';
+  PAGES_BY_ROLE[role].forEach((t,i)=>{
+    const tab=document.createElement('button');
+    tab.className='tab'+(i===0?' active':'');
+    tab.dataset.page=t.id; tab.textContent=t.label;
+    tab.onclick=()=>showPage(t.id);
+    tabsBar.appendChild(tab);
+    const pg=document.createElement('div');
+    pg.className='page'+(i===0?' active':'');
+    pg.id='pg-'+t.id;
+    pg.innerHTML = buildPageShell(t.id);
+    pages.appendChild(pg);
+  });
+  // Render first active page
+  const first=PAGES_BY_ROLE[role][0].id;
+  if(first==='fh') renderFH();
+  if(first==='kdash') renderKDash();
+  if(first==='adash') renderADash();
+}
+
+function buildPageShell(id){
+  if(id==='fh') return '<div id="fh-content"></div>';
+  if(id==='kdash') return '<div id="kdash-content"></div>';
+  if(id==='adash') return '<div id="adash-content"></div>';
+  if(id==='kchecklist') return `
+    <div id="kit-content"></div>
+    <div class="card">
+      <div class="card-title">耗损拍照记录 Wastage Log</div>
+      <div class="wastage-row">
+        <input type="text" id="wastageNote" placeholder="耗损item / 数量说明…">
+        <label class="btn btn-blue" style="cursor:pointer;display:flex;align-items:center;gap:4px;">
+          📷 拍照
+          <input type="file" accept="image/*" capture="environment" id="wastagePhoto" style="display:none;" onchange="previewPhoto(this)">
+        </label>
+      </div>
+      <div id="photoPreview" style="font-size:11.5px;color:var(--muted);min-height:16px;margin-bottom:8px;"></div>
+      <button class="btn btn-red btn-full" onclick="addWastage()">添加记录 Add Record</button>
+      <div class="photo-grid" id="wastageGrid"></div>
+      <div class="muted-note">记录保存在本设备浏览器。点击下方按钮可直接导出含照片的 PDF 报告。</div>
+      <button class="btn btn-red btn-full mt10" onclick="exportWastagePDF()">📄 导出 PDF 报告 Export PDF</button>
+    </div>`;
+  if(id==='stock') return `
+    <div class="card">
+      <div class="card-title">每日盘点 Daily Stock Check</div>
+      <table class="inv">
+        <thead><tr>
+          <th>品项 Item</th><th>预估<br>Predicted</th>
+          <th>实际<br>Actual</th><th>建议订货<br>Order</th><th></th>
+        </tr></thead>
+        <tbody id="invBody"></tbody>
+      </table>
+      <div class="add-row" id="addRowWrap">
+        <input type="text" id="newItem" placeholder="新增品项名称…">
+        <button class="btn btn-blue" onclick="addInvItem()">新增</button>
+      </div>
+      <p class="muted-note" id="invNote"></p>
+      <div class="save-bar">
+        <button class="btn btn-red btn-full" onclick="saveInv()">保存 Save</button>
+      </div>
+    </div>`;
+  return '';
+}
+
+function showPage(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===id));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('pg-'+id);
+  if(pg) pg.classList.add('active');
+  if(id==='fh') renderFH();
+  if(id==='kchecklist') renderKit();
+  if(id==='kdash') renderKDash();
+  if(id==='adash') renderADash();
+  if(id==='stock') renderInv();
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+
+function allItems(def){ return Object.values(def).flatMap(s=>s.items); }
+function countDone(def,state){ return allItems(def).filter(it=>state[it.id]).length; }
+
+function checklistHTML(def,state,toggleFn){
+  return Object.keys(def).map(sKey=>{
+    const sec=def[sKey];
+    const done=sec.items.filter(it=>state[it.id]).length;
+    return `
+      <div class="section-header ${sec.color}">
+        <span>${sec.title}</span>
+        <span style="font-weight:400;font-size:11px;">${done}/${sec.items.length}</span>
+      </div>
+      <div class="section-body">
+        ${sec.items.map(it=>`
+          <div class="check-item ${state[it.id]?'done':''}" onclick="${toggleFn}('${it.id}')">
+            <input type="checkbox" ${state[it.id]?'checked':''} onclick="event.stopPropagation();" onchange="${toggleFn}('${it.id}')">
+            <div>
+              <div class="item-zh">${it.zh}</div>
+              <span class="item-en">${it.en}</span>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }).join('');
+}
+
+function sectionProgressBars(def,state,colorClass){
+  return Object.values(def).map(s=>{
+    const done=s.items.filter(it=>state[it.id]).length;
+    const pct=Math.round((done/s.items.length)*100);
+    return `<div class="sec-prog">
+      <div class="sec-prog-row"><span>${s.title}</span><span>${done}/${s.items.length}</span></div>
+      <div class="progress-track"><div class="progress-fill ${colorClass}" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// FRONT HALL CHECKLIST
+// ═══════════════════════════════════════════════
+
+function loadFH(){ fhState=store.get('fh-'+today)||{}; renderFH(); }
+
+function renderFH(){
+  const c=document.getElementById('fh-content'); if(!c) return;
+  const total=allItems(FRONT_HALL).length;
+  const done=countDone(FRONT_HALL,fhState);
+  const pct=Math.round((done/total)*100);
+  c.innerHTML=`
+    <div class="fh-banner">
+      <div class="fh-banner-top">
+        <div>
+          <div class="fh-banner-title">外厅开店检查</div>
+          <div class="fh-banner-sub">Front Hall Pre-Opening Checklist</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="fh-big-num">${done}</div>
+          <div class="fh-big-label">/ ${total} 完成</div>
+        </div>
+      </div>
+      <div class="fh-bar-wrap">
+        <div class="fh-bar-label"><span>完成进度 Progress</span><span>${pct}%</span></div>
+        <div class="fh-bar-track"><div class="fh-bar-fill" style="width:${pct}%;"></div></div>
+      </div>
+    </div>
+    ${checklistHTML(FRONT_HALL,fhState,'toggleFH')}
+    <button class="btn btn-outline btn-full" onclick="resetFH()" style="margin-top:4px;">重置今日清单 Reset Today</button>
+  `;
+}
+
+function toggleFH(id){
+  fhState[id]=!fhState[id];
+  store.set('fh-'+today,fhState);
+  renderFH();
+  if(document.getElementById('adash-content')) renderADash();
+}
+function resetFH(){
+  if(!confirm('确定重置今日外厅清单？')) return;
+  fhState={}; store.set('fh-'+today,fhState); renderFH();
+  if(document.getElementById('adash-content')) renderADash();
+}
+
+// ═══════════════════════════════════════════════
+// KITCHEN CHECKLIST
+// ═══════════════════════════════════════════════
+
+function loadKit(){ kitState=store.get('kit-'+today)||{}; renderKit(); }
+
+function renderKit(){
+  const c=document.getElementById('kit-content'); if(!c) return;
+  c.innerHTML=
+    checklistHTML(KITCHEN,kitState,'toggleKit')+
+    `<button class="btn btn-outline btn-full mt10" onclick="resetKit()">重置今日清单 Reset Today</button>`;
+}
+function toggleKit(id){
+  kitState[id]=!kitState[id];
+  store.set('kit-'+today,kitState);
+  renderKit();
+  if(document.getElementById('kdash-content')) renderKDash();
+  if(document.getElementById('adash-content')) renderADash();
+}
+function resetKit(){
+  if(!confirm('确定重置今日后厨清单？')) return;
+  kitState={}; store.set('kit-'+today,kitState); renderKit();
+  if(document.getElementById('kdash-content')) renderKDash();
+  if(document.getElementById('adash-content')) renderADash();
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARDS
+// ═══════════════════════════════════════════════
+
+function renderKDash(){
+  const c=document.getElementById('kdash-content'); if(!c) return;
+  const total=allItems(KITCHEN).length, done=countDone(KITCHEN,kitState);
+  const pct=Math.round((done/total)*100);
+  const low=getLow();
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title">后厨清单进度 Kitchen Progress</div>
+      <div class="stat-grid" style="margin-bottom:14px;">
+        <div class="stat-box"><div class="stat-num">${done}/${total}</div><div class="stat-label">已完成项目</div></div>
+        <div class="stat-box"><div class="stat-num">${pct}%</div><div class="stat-label">完成度</div></div>
+      </div>
+      ${sectionProgressBars(KITCHEN,kitState,'pf-purple')}
+    </div>
+    <div class="card">
+      <div class="card-title">耗损记录 Wastage</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num">${wastageState.length}</div><div class="stat-label">今日记录条数</div></div>
+        <div class="stat-box"><div class="stat-num">${wastageState.filter(w=>w.photo).length}</div><div class="stat-label">已拍照片数</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">库存提醒 Stock Alerts</div>
+      ${low.length===0?'<div class="ok-note">✓ 暂无异常 No issues</div>':low.map(n=>`<div class="alert-item">⚠ ${n}：实际低于预估</div>`).join('')}
+    </div>
+  `;
+}
+
+function renderADash(){
+  const c=document.getElementById('adash-content'); if(!c) return;
+  const fhTotal=allItems(FRONT_HALL).length, fhDone=countDone(FRONT_HALL,fhState);
+  const kitTotal=allItems(KITCHEN).length, kitDone=countDone(KITCHEN,kitState);
+  const grandTotal=fhTotal+kitTotal, grandDone=fhDone+kitDone;
+  const grandPct=Math.round((grandDone/grandTotal)*100);
+  const fhPct=Math.round((fhDone/fhTotal)*100);
+  const kitPct=Math.round((kitDone/kitTotal)*100);
+  const low=getLow();
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title">全店完成度 Overall Progress <span class="sub">${grandDone}/${grandTotal}</span></div>
+      <div class="progress-track" style="height:11px;margin-bottom:16px;">
+        <div class="progress-fill pf-red" style="width:${grandPct}%;"></div>
+      </div>
+      <div class="area-block front">
+        <div class="area-block-title">🟢 外厅 Front Hall — ${fhDone}/${fhTotal} (${fhPct}%)</div>
+        ${sectionProgressBars(FRONT_HALL,fhState,'pf-green')}
+      </div>
+      <div class="area-block kitchen" style="margin-bottom:0;">
+        <div class="area-block-title">🟣 后厨 Kitchen — ${kitDone}/${kitTotal} (${kitPct}%)</div>
+        ${sectionProgressBars(KITCHEN,kitState,'pf-purple')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">耗损记录 Wastage</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num">${wastageState.length}</div><div class="stat-label">今日记录条数</div></div>
+        <div class="stat-box"><div class="stat-num">${wastageState.filter(w=>w.photo).length}</div><div class="stat-label">已拍照片数</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">库存提醒 Stock Alerts</div>
+      ${low.length===0?'<div class="ok-note">✓ 暂无异常 No issues</div>':low.map(n=>`<div class="alert-item">⚠ ${n}：实际低于预估</div>`).join('')}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// WASTAGE
+// ═══════════════════════════════════════════════
+
+function loadWastage(){ wastageState=store.get('wastage-'+today)||[]; renderWastage(); }
+
+function previewPhoto(input){
+  const p=document.getElementById('photoPreview');
+  if(p&&input.files[0]) p.textContent='📷 '+input.files[0].name;
+}
+function renderWastage(){
+  const g=document.getElementById('wastageGrid'); if(!g) return;
+  g.innerHTML=wastageState.map((w,i)=>`
+    <div class="photo-thumb">
+      ${w.photo?`<img src="${w.photo}" alt="">`:`<div class="photo-no-img">无照片</div>`}
+      <button class="photo-del" onclick="delWastage(${i})">×</button>
+      <div class="photo-cap">${w.note||'(无说明)'}</div>
+    </div>`).join('');
+  if(document.getElementById('kdash-content')) renderKDash();
+  if(document.getElementById('adash-content')) renderADash();
+}
+function addWastage(){
+  const noteEl=document.getElementById('wastageNote');
+  const fileEl=document.getElementById('wastagePhoto');
+  const note=noteEl?noteEl.value.trim():'';
+  const file=fileEl?fileEl.files[0]:null;
+  if(!note&&!file){ alert('请输入说明或拍照 Please add a note or photo'); return; }
+  const finish=(photo)=>{
+    wastageState.push({note,photo:photo||null,time:new Date().toISOString()});
+    if(noteEl) noteEl.value='';
+    if(fileEl) fileEl.value='';
+    const p=document.getElementById('photoPreview'); if(p) p.textContent='';
+    store.set('wastage-'+today,wastageState);
+    renderWastage();
+  };
+  if(file){ const r=new FileReader(); r.onload=()=>finish(r.result); r.readAsDataURL(file); }
+  else finish(null);
+}
+function delWastage(i){ wastageState.splice(i,1); store.set('wastage-'+today,wastageState); renderWastage(); }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function exportWastagePDF(){
+  if(!wastageState.length){ alert('今天还没有耗损记录 No wastage records today'); return; }
+
+  // 动态加载 jsPDF + html2canvas（只在需要时才拉取，不阻塞页面）
+  function loadScript(src){
+    return new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = ()=>reject(new Error('资源加载失败，请检查网络连线 Failed to load: '+src));
+      document.head.appendChild(s);
+    });
+  }
+  try{
+    if(!window.jspdf){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    if(!window.html2canvas){
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    }
+  }catch(err){ alert(err.message); return; }
+
+  // ── 用真实网页字体离屏渲染报表（中文/英文都用浏览器原生字体绘制，
+  //     再截图转成PDF图片，彻底避开 jsPDF 内建字体不支持中文导致的乱码问题）──
+  const rowsHtml = wastageState.map((w,i)=>{
+    const note = w.note || '(无说明 No description)';
+    const time = new Date(w.time).toLocaleTimeString();
+    const bg = i % 2 === 0 ? '#f9fafc' : '#ffffff';
+    return `<tr style="background:${bg};">
+      <td style="padding:8px 6px;border-bottom:1px solid #e2e5ec;width:28px;">${i+1}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #e2e5ec;">${escapeHtml(note)}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #e2e5ec;white-space:nowrap;">${time}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #e2e5ec;text-align:right;color:${w.photo?'#059669':'#6b7280'};">${w.photo?'✓':'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const withPhotos = wastageState.filter(w => w.photo);
+  const photosHtml = withPhotos.length ? `
+    <div style="height:2px;background:#c8102e;margin:20px 0 14px;"></div>
+    <div style="font-weight:700;color:#1b3a6b;font-size:15px;margin-bottom:10px;">Photos (${withPhotos.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      ${withPhotos.map(w => `
+        <div style="width:170px;">
+          <img src="${w.photo}" style="width:170px;height:130px;object-fit:cover;border-radius:6px;border:1px solid #e2e5ec;display:block;">
+          <div style="font-size:11px;color:#6b7280;margin-top:4px;">${escapeHtml((w.note||'').slice(0,30))}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-99999px;top:0;width:760px;background:#fff;font-family:"PingFang SC","Microsoft YaHei","Segoe UI",-apple-system,sans-serif;color:#1a1d24;';
+  wrap.innerHTML = `
+    <div style="background:#1b3a6b;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:22px;font-weight:800;">TALKCRAB</div>
+        <div style="font-size:12px;opacity:.85;">Wastage Report</div>
+      </div>
+      <div style="text-align:right;font-size:12px;opacity:.9;">
+        <div>${today}</div>
+        <div>${todayDisplay}</div>
+      </div>
+    </div>
+    <div style="height:3px;background:#c8102e;"></div>
+    <div style="padding:20px;">
+      <div style="font-weight:700;color:#1b3a6b;font-size:16px;margin-bottom:12px;">Wastage Log — ${wastageState.length} record(s)</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+        <thead>
+          <tr style="background:#e8eef7;color:#1b3a6b;">
+            <th style="padding:8px 6px;text-align:left;">#</th>
+            <th style="padding:8px 6px;text-align:left;">说明 Description</th>
+            <th style="padding:8px 6px;text-align:left;">时间 Time</th>
+            <th style="padding:8px 6px;text-align:right;">照片</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+      ${photosHtml}
+    </div>
+    <div style="padding:10px 20px;color:#969696;font-size:10.5px;text-align:center;">TALKCRAB 匠蟹 — Generated ${new Date().toLocaleString()}</div>
+  `;
+  document.body.appendChild(wrap);
+
+  try{
+    const canvas = await window.html2canvas(wrap, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = canvas.height * imgW / canvas.width;
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    let heightLeft = imgH;
+    let position = 0;
+    doc.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position = heightLeft - imgH;
+      doc.addPage();
+      doc.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
+    doc.save(`TALKCRAB_Wastage_${today}.pdf`);
+  } finally {
+    document.body.removeChild(wrap);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// INVENTORY
+// ═══════════════════════════════════════════════
+
+function loadInventory(){
+  inventoryState=store.get('inv-'+today);
+  if(!inventoryState){ inventoryState={items:{}}; DEFAULT_INV.forEach(n=>{ inventoryState.items[n]={predicted:'',actual:''}; }); }
+  renderInv();
+}
+function getLow(){
+  if(!inventoryState) return [];
+  return Object.keys(inventoryState.items).filter(n=>{
+    const it=inventoryState.items[n];
+    return it.predicted!==''&&it.actual!==''&&Number(it.actual)<Number(it.predicted);
+  });
+}
+function renderInv(){
+  const tbody=document.getElementById('invBody'); if(!tbody||!inventoryState) return;
+  const isAdmin=currentRole==='admin';
+  const ar=document.getElementById('addRowWrap'); if(ar) ar.style.display=isAdmin?'flex':'none';
+  const note=document.getElementById('invNote');
+  if(note) note.textContent=isAdmin?'管理员权限：可编辑预估数量、新增/删除品项。':'员工权限：只能填写实际数量。';
+  tbody.innerHTML='';
+  Object.keys(inventoryState.items).forEach(name=>{
+    const it=inventoryState.items[name];
+    const low=it.predicted!==''&&it.actual!==''&&Number(it.actual)<Number(it.predicted);
+    const hasBoth=it.predicted!==''&&it.actual!=='';
+    const sug=hasBoth?Math.max(Number(it.predicted)-Number(it.actual),0):null;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${name}${low?' <span class="low-flag">⚠</span>':''}</td>
+      <td><input type="number" min="0" value="${it.predicted}" ${isAdmin?'':'disabled'} onchange="updatePred('${name}',this.value)"></td>
+      <td><input type="number" min="0" value="${it.actual}" onchange="updateAct('${name}',this.value)"></td>
+      <td style="text-align:center;font-weight:700;color:${sug>0?'var(--red)':'var(--muted)'};">${sug===null?'—':sug}</td>
+      <td>${isAdmin?`<button class="row-del" onclick="delInvItem('${name}')">×</button>`:''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+function updatePred(n,v){ if(inventoryState){ inventoryState.items[n].predicted=v; renderInv(); } }
+function updateAct(n,v){ if(inventoryState){ inventoryState.items[n].actual=v; renderInv(); } }
+function addInvItem(){
+  if(currentRole!=='admin') return;
+  const input=document.getElementById('newItem');
+  const name=input?input.value.trim():''; if(!name) return;
+  inventoryState.items[name]={predicted:'',actual:''}; if(input) input.value=''; renderInv();
+}
+function delInvItem(n){ if(currentRole!=='admin') return; delete inventoryState.items[n]; renderInv(); }
+function saveInv(){
+  if(store.set('inv-'+today,inventoryState)){
+    renderInv();
+    if(document.getElementById('kdash-content')) renderKDash();
+    if(document.getElementById('adash-content')) renderADash();
+    alert('已保存 Saved ✓');
+  } else alert('保存失败 Save failed');
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+// 直接以管理员身份登入，跳过 PIN 画面
+const _autoRole = ROLES['0501'];
+currentRole = _autoRole.role;
+document.getElementById('loginScreen').style.display = 'none';
+enterApp(_autoRole);
+</script>
+</body>
+</html>
